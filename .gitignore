@@ -1,0 +1,18 @@
+# Compiler output
+cache/
+out/
+
+# Dependencies
+frontend/node_modules/
+
+# IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+
+# Build
+frontend/dist/

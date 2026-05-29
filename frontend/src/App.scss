@@ -1,0 +1,479 @@
+// Dark theme for TokenBank App
+
+$bg-primary: #0a0a0f;
+$bg-card: #16171d;
+$bg-card-hover: #1c1d25;
+$border: #2e303a;
+$text-primary: #e0e0e0;
+$text-secondary: #9ca3af;
+$text-muted: #6b7280;
+$accent: #c084fc;
+$accent-glow: rgba(192, 132, 252, 0.15);
+$success: #34d399;
+$success-glow: rgba(52, 211, 153, 0.15);
+$danger: #f87171;
+$danger-glow: rgba(248, 113, 113, 0.15);
+$radius: 12px;
+$radius-sm: 8px;
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+// Header
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  border-bottom: 1px solid $border;
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(10, 10, 15, 0.85);
+
+  @media (max-width: 768px) {
+    padding: 16px 20px;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: $accent;
+  letter-spacing: -0.5px;
+}
+
+.wallet-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wallet-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: $bg-card;
+  border: 1px solid $border;
+  border-radius: $radius;
+  padding: 8px 16px;
+}
+
+.wallet-address {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 14px;
+  color: $text-primary;
+}
+
+.eth-balance {
+  font-size: 13px;
+  color: $text-secondary;
+  padding-left: 12px;
+  border-left: 1px solid $border;
+}
+
+// Buttons
+.btn {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: $radius-sm;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  background: $accent;
+  color: #0a0a0f;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 0 20px $accent-glow;
+    transform: translateY(-1px);
+  }
+}
+
+.btn-success {
+  background: $success;
+  color: #0a0a0f;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 0 20px $success-glow;
+    transform: translateY(-1px);
+  }
+}
+
+.btn-danger {
+  background: $danger;
+  color: #0a0a0f;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 0 20px $danger-glow;
+    transform: translateY(-1px);
+  }
+}
+
+.btn-outline {
+  background: transparent;
+  color: $text-secondary;
+  border: 1px solid $border;
+
+  &:hover {
+    color: $text-primary;
+    border-color: $text-muted;
+  }
+}
+
+// Main content
+.main {
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+// Card grid (2 columns)
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Cards
+.card {
+  background: $bg-card;
+  border: 1px solid $border;
+  border-radius: $radius;
+  padding: 24px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-primary;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid $border;
+}
+
+.action-card {
+  .card-title {
+    margin-bottom: 20px;
+  }
+}
+
+// Info rows
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+
+  & + & {
+    border-top: 1px solid rgba($border, 0.3);
+  }
+}
+
+.info-label {
+  font-size: 14px;
+  color: $text-secondary;
+}
+
+.info-value {
+  font-size: 14px;
+  color: $text-primary;
+  font-weight: 500;
+
+  &.balance {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 16px;
+  }
+
+  &.highlight {
+    color: $success;
+    font-size: 20px;
+  }
+
+  &.allowance {
+    font-family: ui-monospace, Consolas, monospace;
+    color: $accent;
+  }
+}
+
+// Input
+.input-group {
+  display: flex;
+  align-items: center;
+  border: 1px solid $border;
+  border-radius: $radius-sm;
+  background: #12131a;
+  padding: 0 16px;
+  margin-bottom: 20px;
+  transition: border-color 0.2s;
+
+  &:focus-within {
+    border-color: $accent;
+  }
+}
+
+.amount-input {
+  flex: 1;
+  padding: 14px 0;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 18px;
+  font-family: ui-monospace, Consolas, monospace;
+  color: $text-primary;
+
+  &::placeholder {
+    color: $text-muted;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.input-suffix {
+  font-size: 14px;
+  font-weight: 600;
+  color: $accent;
+  padding-left: 12px;
+  border-left: 1px solid $border;
+  margin-left: 8px;
+}
+
+// Transaction notice
+.tx-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: $text-secondary;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: rgba($accent, 0.08);
+  border-radius: $radius-sm;
+
+  &.success {
+    color: $success;
+    background: $success-glow;
+  }
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba($accent, 0.3);
+  border-top-color: $accent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.tx-hash {
+  font-size: 12px;
+  color: $accent;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Button group
+.btn-group {
+  display: flex;
+  gap: 10px;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
+
+  .btn {
+    flex: 1;
+  }
+}
+
+.hint {
+  margin-top: 16px;
+  font-size: 12px;
+  color: $text-muted;
+  text-align: center;
+}
+
+// Permit deposit section
+.permit-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px dashed rgba($border, 0.5);
+}
+
+.permit-divider {
+  text-align: center;
+  margin-bottom: 16px;
+
+  span {
+    font-size: 13px;
+    color: $text-muted;
+    background: $bg-card;
+    padding: 0 12px;
+  }
+}
+
+.btn-permit {
+  width: 100%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  color: #fff !important;
+  font-size: 15px !important;
+  padding: 14px !important;
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+  }
+}
+
+// Connect prompt
+.connect-prompt {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.prompt-card {
+  background: $bg-card;
+  border: 1px solid $border;
+  border-radius: $radius;
+  padding: 48px 40px;
+  text-align: center;
+
+  h2 {
+    font-size: 22px;
+    color: $text-primary;
+    margin-bottom: 12px;
+  }
+
+  p {
+    color: $text-secondary;
+    font-size: 15px;
+  }
+}
+
+// SIWE badge
+.siwe-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: $success;
+  background: $success-glow;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-sm {
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+// Transfer card
+.transfer-card {
+  .card-title {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.transfer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid $border;
+}
+
+.transfer-empty {
+  color: $text-muted;
+  text-align: center;
+  padding: 24px 0;
+  font-size: 14px;
+}
+
+.transfer-table-wrapper {
+  overflow-x: auto;
+}
+
+.transfer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    text-align: left;
+    color: $text-muted;
+    font-weight: 500;
+    padding: 8px 10px;
+    border-bottom: 1px solid $border;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 10px;
+    border-bottom: 1px solid rgba($border, 0.3);
+    color: $text-secondary;
+    white-space: nowrap;
+  }
+
+  tbody tr:hover {
+    background: rgba($accent, 0.04);
+  }
+
+  .mono {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 12px;
+  }
+
+  .tag-self {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba($accent, 0.15);
+    color: $accent;
+  }
+
+  .transfer-amount {
+    font-family: ui-monospace, Consolas, monospace;
+    font-weight: 600;
+
+    &.in {
+      color: $success;
+    }
+
+    &.out {
+      color: $danger;
+    }
+  }
+}
