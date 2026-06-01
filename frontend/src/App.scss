@@ -476,4 +476,39 @@ $radius-sm: 8px;
       color: $danger;
     }
   }
+
+  .permit2-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .permit2-label {
+    font-size: 13px;
+    color: #888;
+    white-space: nowrap;
+  }
+
+  .permit2-nonce-input {
+    flex: 1;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: #e0e0e0;
+    font-size: 14px;
+    font-family: ui-monospace, Consolas, monospace;
+    outline: none;
+    transition: border-color 0.2s;
+
+    &:focus {
+      border-color: $accent;
+    }
+  }
+
+  .btn-group-permit2 {
+    display: flex;
+    gap: 10px;
+  }
 }

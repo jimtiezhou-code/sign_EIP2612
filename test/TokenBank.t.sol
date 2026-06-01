@@ -4,10 +4,13 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import "../src/BaseERC20.sol";
 import "../src/tokenBank.sol";
+import "permit2/Permit2.sol";
+import "permit2/libraries/PermitHash.sol";
 
 contract TokenBankTest is Test {
     BaseERC20 public token;
     TokenBank public bank;
+    Permit2 public permit2;
 
     address public deployer = makeAddr("deployer");
     address public alice = makeAddr("alice");
@@ -23,10 +26,11 @@ contract TokenBankTest is Test {
         // Derive aliceSigner from known private key (for permit signing)
         aliceSigner = vm.addr(alicePk);
 
-        // Deployer creates token and bank
+        // Deployer creates Permit2, token and bank
         vm.startPrank(deployer);
+        permit2 = new Permit2();
         token = new BaseERC20();
-        bank = new TokenBank(address(token));
+        bank = new TokenBank(address(token), address(permit2));
 
         // Transfer tokens to test accounts
         token.transfer(alice, 10_000 * 1e18);
@@ -45,7 +49,7 @@ contract TokenBankTest is Test {
 
     function testConstructorZeroAddress() public {
         vm.expectRevert("TokenBank: address is zero");
-        new TokenBank(address(0));
+        new TokenBank(address(0), address(permit2));
     }
 
     // ==============================
@@ -244,6 +248,153 @@ contract TokenBankTest is Test {
     }
 
     // ==============================
+    //  depositWithPermit2 — Permit2
+    // ==============================
+
+    function testDepositWithPermit2() public {
+        uint256 amount = 100 * 1e18;
+        uint256 pnonce = 0;
+        uint256 deadline = block.timestamp + 1 hours;
+
+        // 1. aliceSigner 先 approve Permit2（一次性，通常设为无限额度）
+        vm.prank(aliceSigner);
+        token.approve(address(permit2), type(uint256).max);
+
+        // 2. 构建 PermitTransferFrom 签名
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer
+            .PermitTransferFrom({
+                permitted: ISignatureTransfer.TokenPermissions({
+                    token: address(token),
+                    amount: amount
+                }),
+                nonce: pnonce,
+                deadline: deadline
+            });
+
+        bytes memory signature = _signPermit2Transfer(permit, alicePk, address(bank));
+
+        // 3. 调用 depositWithPermit2（任何人都可以 relay）
+        vm.prank(bob);
+        bank.depositWithPermit2(aliceSigner, amount, pnonce, deadline, signature);
+
+        assertEq(bank.getDepositBalance(aliceSigner), amount);
+        assertEq(token.balanceOf(address(bank)), amount);
+    }
+
+    function testDepositWithPermit2_ZeroAmount() public {
+        vm.expectRevert("TokenBank: amount is 0");
+        bank.depositWithPermit2(aliceSigner, 0, 0, block.timestamp + 1 hours, "");
+    }
+
+    function testDepositWithPermit2_ExpiredSignature() public {
+        uint256 amount = 100 * 1e18;
+        uint256 deadline = 0; // 已过期
+
+        vm.startPrank(aliceSigner);
+        token.approve(address(permit2), type(uint256).max);
+        vm.stopPrank();
+
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer
+            .PermitTransferFrom({
+                permitted: ISignatureTransfer.TokenPermissions({
+                    token: address(token),
+                    amount: amount
+                }),
+                nonce: 0,
+                deadline: deadline
+            });
+
+        bytes memory signature = _signPermit2Transfer(permit, alicePk, address(bank));
+
+        vm.prank(bob);
+        // Permit2 会在 deadline 过期时 revert
+        vm.expectRevert();
+        bank.depositWithPermit2(aliceSigner, amount, 0, deadline, signature);
+    }
+
+    function testDepositWithPermit2_WrongSigner() public {
+        uint256 amount = 100 * 1e18;
+        uint256 deadline = block.timestamp + 1 hours;
+
+        vm.startPrank(aliceSigner);
+        token.approve(address(permit2), type(uint256).max);
+        vm.stopPrank();
+
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer
+            .PermitTransferFrom({
+                permitted: ISignatureTransfer.TokenPermissions({
+                    token: address(token),
+                    amount: amount
+                }),
+                nonce: 0,
+                deadline: deadline
+            });
+
+        // 用 alicePk 签名，但 owner 传入 alice（不同地址）
+        bytes memory signature = _signPermit2Transfer(permit, alicePk, address(bank));
+
+        // owner 参数传入 alice 而非 aliceSigner
+        vm.prank(bob);
+        vm.expectRevert();
+        bank.depositWithPermit2(alice, amount, 0, deadline, signature);
+    }
+
+    function testDepositWithPermit2_ReplaySigner() public {
+        uint256 amount = 100 * 1e18;
+        uint256 pnonce = 0;
+        uint256 deadline = block.timestamp + 1 hours;
+
+        vm.startPrank(aliceSigner);
+        token.approve(address(permit2), type(uint256).max);
+        vm.stopPrank();
+
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer
+            .PermitTransferFrom({
+                permitted: ISignatureTransfer.TokenPermissions({
+                    token: address(token),
+                    amount: amount
+                }),
+                nonce: pnonce,
+                deadline: deadline
+            });
+
+        bytes memory signature = _signPermit2Transfer(permit, alicePk, address(bank));
+
+        // 第一次成功
+        vm.prank(bob);
+        bank.depositWithPermit2(aliceSigner, amount, pnonce, deadline, signature);
+
+        // 第二次使用同一签名 → nonce 已标记 → revert
+        vm.prank(bob);
+        vm.expectRevert();
+        bank.depositWithPermit2(aliceSigner, amount, pnonce, deadline, signature);
+    }
+
+    function testDepositWithPermit2_WithoutPermit2Approval() public {
+        uint256 amount = 100 * 1e18;
+        uint256 pnonce = 0;
+        uint256 deadline = block.timestamp + 1 hours;
+
+        // 不 approve Permit2
+
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer
+            .PermitTransferFrom({
+                permitted: ISignatureTransfer.TokenPermissions({
+                    token: address(token),
+                    amount: amount
+                }),
+                nonce: pnonce,
+                deadline: deadline
+            });
+
+        bytes memory signature = _signPermit2Transfer(permit, alicePk, address(bank));
+
+        vm.prank(bob);
+        vm.expectRevert(); // Permit2: allowance too low
+        bank.depositWithPermit2(aliceSigner, amount, pnonce, deadline, signature);
+    }
+
+    // ==============================
     //  查询
     // ==============================
 
@@ -354,5 +505,40 @@ contract TokenBankTest is Test {
         bytes32 domainSeparator = token.DOMAIN_SEPARATOR();
 
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+    }
+
+    /// @dev 构建 Permit2 PermitTransferFrom 的 EIP-712 签名
+    function _signPermit2Transfer(
+        ISignatureTransfer.PermitTransferFrom memory permit,
+        uint256 privateKey,
+        address spender
+    ) internal view returns (bytes memory) {
+        bytes32 TOKEN_PERMISSIONS_TYPEHASH = keccak256(
+            "TokenPermissions(address token,uint256 amount)"
+        );
+        bytes32 PERMIT_TRANSFER_FROM_TYPEHASH = keccak256(
+            "PermitTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline)TokenPermissions(address token,uint256 amount)"
+        );
+
+        bytes32 tokenPermissionsHash = keccak256(
+            abi.encode(TOKEN_PERMISSIONS_TYPEHASH, permit.permitted)
+        );
+        bytes32 msgHash = keccak256(
+            abi.encode(
+                PERMIT_TRANSFER_FROM_TYPEHASH,
+                tokenPermissionsHash,
+                spender,
+                permit.nonce,
+                permit.deadline
+            )
+        );
+
+        bytes32 domainSeparator = permit2.DOMAIN_SEPARATOR();
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", domainSeparator, msgHash)
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
+        return abi.encodePacked(r, s, v);
     }
 }

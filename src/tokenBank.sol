@@ -1,17 +1,20 @@
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import "permit2/interfaces/ISignatureTransfer.sol";
 import "./BaseERC20.sol";
 
 contract TokenBank {
     mapping(address => uint256) public depositBalances;
     BaseERC20 public token;
+    ISignatureTransfer public immutable permit2;
 
-    constructor(address _BaseERC20Address) {
+    constructor(address _BaseERC20Address, address _permit2Address) {
         require(_BaseERC20Address != address(0), "TokenBank: address is zero");
+        require(_permit2Address != address(0), "TokenBank: permit2 address is zero");
         token = BaseERC20(_BaseERC20Address);
+        permit2 = ISignatureTransfer(_permit2Address);
     }
 
     event Deposit(address indexed user, uint256 amount);
@@ -41,6 +44,48 @@ contract TokenBank {
 
         // 2. 存款
         require(token.transferFrom(owner, address(this), amount), "TokenBank: deposit failed");
+        depositBalances[owner] += amount;
+        emit Deposit(owner, amount);
+    }
+
+    /**
+     * @dev 通过 Permit2 签名授权转账来进行存款（一步完成）
+     * @dev 用户需提前 approve Permit2 合约（一次性授权无限额度即可）
+     * @param owner 代币持有人
+     * @param amount 存款金额
+     * @param nonce Permit2 签名 nonce（bitmap 形式，uint256）
+     * @param deadline 签名截止时间
+     * @param signature 用户对 PermitTransferFrom 的 EIP-712 签名
+     */
+    function depositWithPermit2(
+        address owner,
+        uint256 amount,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) external {
+        require(amount > 0, "TokenBank: amount is 0");
+
+        // 构造 Permit2 PermitTransferFrom 参数
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: address(token),
+                amount: amount
+            }),
+            nonce: nonce,
+            deadline: deadline
+        });
+
+        ISignatureTransfer.SignatureTransferDetails memory transferDetails = ISignatureTransfer
+            .SignatureTransferDetails({
+            to: address(this),
+            requestedAmount: amount
+        });
+
+        // 调用 Permit2：验证签名 + 将 token 从 owner 转给 TokenBank
+        permit2.permitTransferFrom(permit, transferDetails, owner, signature);
+
+        // 记录存款
         depositBalances[owner] += amount;
         emit Deposit(owner, amount);
     }
@@ -80,4 +125,3 @@ contract TokenBank {
 
 
 }
-
